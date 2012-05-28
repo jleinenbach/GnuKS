@@ -14,16 +14,16 @@
 # $Id: Makefile,v 1.6 2003/07/05 15:16:29 yminsky Exp $
 
 include ../Makefile.local
-
-CINCLUDES=-I`ocamlc -where` $(BDBINCLUDE)
+CINCLUDES=-I`ocamlopt -where` $(BDBINCLUDE)
 CC=gcc
 CXX=g++
-CFLAGS=-O3 -Werror-implicit-function-declaration $(CINCLUDES) $(BDBLIB) -I .
+#CFLAGS=-O3 -Werror-implicit-function-declaration $(CINCLUDES) $(BDBLIB) -I .
+CFLAGS=-O3 -Wall -D_FILE_OFFSET_BITS=64 -D_REENTRANT $(CINCLUDES) $(BDBLIB) -I .
 CXXFLAGS=-O3 $(CINCLUDES) $(BDBLIB) -I .
 
 MKLIB=ocamlmklib
 RANLIB=ranlib
-OCAMLDEP=ocamldep $(PP)
+OCAMLDEP=ocamldep -native $(PP)
 CAMLINCLUDE=
 COMMONCAMLFLAGS= $(CAMLINCLUDE) $(PP) #-thread 
 CAMLLIBS=unix.cma str.cma mylibs.cma 
@@ -31,7 +31,7 @@ OCAMLFLAGS=$(COMMONCAMLFLAGS) -g
 OCAMLOPTFLAGS=$(COMMONCAMLFLAGS) -inline 40 
 
 ifndef LIBDB
-LIBDB=-ldb-4.6
+LIBDB=-ldb-5.1
 endif
 
 COBJS = bdb_stubs.o
@@ -65,7 +65,7 @@ clean: partialclean
 install:
 	cp libmldb.a $(LIBDIR)/libmldb.a
 	cd $(LIBDIR); $(RANLIB) libmldb.a
-	cp db.cma db.cmi db.mli $(LIBDIR)
+	cp db.cma db.cmi bdb.mli db.mli $(LIBDIR)
 
 installopt:
 	cp db.cmx db.cmxa db.a $(LIBDIR)
@@ -74,7 +74,7 @@ installopt:
 
 
 # Common rules
-.SUFFIXES: .ml .mli .cmo .cmi .cmx
+.SUFFIXES: .mli .cmi .ml .cmo .cmx
 
 .ml.o:
 	$(OCAMLOPT) -output-obj $(OCAMLOPTFLAGS) $< 
@@ -88,10 +88,10 @@ installopt:
 .c.obj:
 	$(CC) $(CFLAGS) /c $< 
 
-.ml.cmo:
+.mli.cmi:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
 
-.mli.cmi:
+.ml.cmo:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
 
 .ml.cmx:
@@ -99,7 +99,7 @@ installopt:
 
 # Dependencies
 #dep:
-#	$(OCAMLDEP) $(INCLUDES) *.ml *.mli > .depend
+#	$(OCAMLDEP) $(INCLUDES) *.mli *.ml > .depend
 
 #include .depend
 

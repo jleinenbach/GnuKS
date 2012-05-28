@@ -1,25 +1,25 @@
-(************************************************************************)
-(* dbserver.ml- Executable: server process that handles database and    *)
-(*              database queries.                                       *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* dbserver.ml - Executable: server process that handles database and  *)
+(*               database queries.                                     *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 module F(M:sig end) = 
 struct
@@ -37,17 +37,17 @@ struct
 
   let () = 
     set_logfile "db";
-    plerror 0 "sks_db, SKS version %s" version; 
-    plerror 0 "Copyright Yaron Minsky 2002, 2003, 2004"; 
-    plerror 0 "Licensed under GPL.  See COPYING file for details"; 
+    plerror 0 "sks_db, %s version %s" Common.software version; 
+    plerror 0 "Copyright Yaron Minsky 2002-2012"; 
+    plerror 0 "Licensed under GPL.  See LICENSE file for details"; 
     plerror 3 "http port: %d" http_port
 
   let settings = {
     Keydb.withtxn = !Settings.transactions;
     Keydb.cache_bytes = !Settings.cache_bytes;
     Keydb.pagesize = !Settings.pagesize;
-    Keydb.dbdir = Lazy.force Settings.dbdir;
-    Keydb.dumpdir = Lazy.force Settings.dumpdir;
+    Keydb.dbdir = !Settings.dbdir;
+    Keydb.dumpdir = !Settings.dumpdir;
   }
   module Keydb = Keydb.Safe
 
@@ -55,7 +55,7 @@ struct
      code for the DB. *)
 
   let withtxn = !Settings.transactions 
-  let dbdir = Lazy.force Settings.dbdir
+  let dbdir = Settings.dbdir
   let () = 
     if not withtxn then 
       failwith "Running sks_db without transactions is no longer supported."
@@ -100,12 +100,13 @@ struct
     let kpairs = 
       List.fold_left ~init:[] keys
 	~f:(fun list key -> 
-	      try
+	      (try
 		let ki = ParsePGP.parse_pubkey_info (List.hd key) in
 		(ki.pk_ctime,key)::list
 	      with
 		| Sys.Break as e -> raise e
 		| e -> list
+	      )
 	   )
     in
     let kpairs = List.sort ~cmp:descending kpairs in
@@ -136,7 +137,7 @@ struct
     let keyid_length = String.length keyid in
     let short_keyid = String.sub ~pos:(keyid_length - 4) ~len:4 keyid in
     let keys = Keydb.get_by_short_subkeyid short_keyid in
-    match keyid_length with
+    (match keyid_length with
       | 4 -> (* 32-bit keyid.  No further filtering required. *)
 	  keys
 
@@ -158,7 +159,7 @@ struct
 	  failwith "128-bit v3 fingerprints not implemented"
 
       | _ -> failwith "unknown keyid type"
-	  
+    )
 
   (** returns list of keys readied for presentation *)
   let clean_keys request keys = 
@@ -170,11 +171,12 @@ struct
   let get_uids request keyid = 
     let keys = get_keys_by_keyid keyid in
     let keys = clean_keys request keys in
-    match keys with
+    (match keys with
       | [] | _::_::_ -> []
       | key::tl ->
 	  let pkey = KeyMerge.key_to_pkey key in
 	  pkey.KeyMerge.uids
+    )
 
   (******************************************************************)
   (******************************************************************)
@@ -185,23 +187,24 @@ struct
 
   let lookup_keys search_terms =
     let keys = 
-      match search_terms with
+      (match search_terms with
 	| [] -> []
 	| first::rest ->
 	    if check_prefix first "0x" then 
 	      (* keyid search *)
 	      let keyid_string_length = String.length first - 2 in
 	      let keyid = 
-		try
+		(try
 		  KeyHash.dehexify 
 		    (String.sub ~pos:2 ~len:keyid_string_length first)
 		with 		    e -> 
 		  let exn_str = sprintf "Unable to parse hash string: %s"
 		    (Printexc.to_string e) in
-		  raise (Wserver.Misc_error exn_str)
+		  raise (Wserver.Bad_request exn_str)
+		)
 	      in
 	      let keys = (try get_keys_by_keyid keyid 
-			  with Failure s -> raise (Wserver.Misc_error s))
+			  with Failure s -> raise (Wserver.Bad_request s))
 	      in
 	      keys
 	    else 
@@ -209,6 +212,7 @@ struct
 			   search_terms 
 	      in
 	      tsort_keys keys
+      )
     in
     if keys = [] then raise (Wserver.No_results "No keys found")
     else keys
@@ -217,124 +221,152 @@ struct
   (******************************************************************)
   let truncate count keys =
     let rec trunc_c result orig num =
-      match orig with
+      (match orig with
         | [] -> result
 	| h::tail ->
             if (num = 0)
 	    then result
 	    else (trunc_c (result @ [h]) tail (num-1))
+      )
     in
     if count >= 0
     then trunc_c [] keys count 
     else keys
 
-  let handle_get_request request =
-    match request.kind with
+  let handle_get_request request = (
+    (match request.kind with
       | Stats -> 
 	  plerror 4 "/pks/lookup: DB Stats request";
 	  ("text/html; charset=UTF-8", -1, !last_stat_page)
       | Get -> 
 	  plerror 4 "/pks/lookup: Get request (%s)"
 	    (String.concat " " request.search);
-	  let keys = lookup_keys request.search in
-	  let keys = clean_keys request keys in
-	  let count = List.length keys in
-	  let keys = truncate request.limit keys in
-	  let aakeys = 
-	    match keys with
-	      | [] -> ""
-	      | _ -> let keystr = Key.to_string_multiple keys in
-		      Armor.encode_pubkey_string keystr
-	  in
-	  if request.machine_readable then 
-	  (
-		"application/pgp-keys; charset=UTF-8",
-		count,
-	    sprintf "%s" aakeys
-	  )
-	  else
-	  ("text/html; charset=UTF-8",
-	   count,
-	   HtmlTemplates.page  
-	     ~title:(sprintf "Public Key Server -- Get ``%s ''" 
-		       (String.concat ~sep:" " request.search))
-	     ~body:(sprintf "\r\n<pre>\r\n%s\r\n</pre>\r\n" aakeys)
-	  )
+          (try
+	    let keys = lookup_keys request.search in
+	    let keys = clean_keys request keys in
+	    let count = List.length keys in
+	    let keys = truncate request.limit keys in
+	    let aakeys =
+	      (match keys with
+	        | [] -> ""
+	        | _  -> let keystr = Key.to_string_multiple keys in
+			  Armor.encode_pubkey_string keystr;
+	      )
+	    in
+	    if request.machine_readable then 
+	      ("application/pgp-keys; charset=UTF-8",
+	       count,
+	       sprintf "%s" aakeys
+	      )
+	    else 
+	      ("text/html; charset=UTF-8",
+	       count,
+	       HtmlTemplates.page 
+	       ~title:(sprintf "Public Key Server -- Get ``%s ''" 
+	         (String.concat ~sep:" " request.search))
+	       ~body:(sprintf "\r\n<pre>\r\n%s\r\n</pre>\r\n" aakeys)
+	      )
+	  with
+	    | Invalid_argument "Insufficiently specific words" ->
+	        raise (Wserver.Bad_request 
+		        ("Insufficiently specific words: provide " ^
+			  "at least one more specific keyword"))
+	    | Invalid_argument "Too many responses" ->
+		raise (Wserver.Entity_too_large 
+		         "Too many responses, unable to process query")
+	    | Invalid_argument "String.sub" ->
+		raise (Wserver.Bad_request 
+		         "Request incomplete")
+         )
       | HGet -> 
-	  let hash_str = List.hd request.search in
-	  plerror 4 "/pks/lookup: Hash search: %s" hash_str;
-	  let hash = KeyHash.dehexify hash_str in
-	  flush Pervasives.stdout;
-	  let key = 
-	    try Keydb.get_by_hash hash with Not_found -> 
-	      raise (Wserver.Misc_error "Requested hash not found")
-	  in
-	  let key = 
-	    if request.clean then
-	      match Fixkey.presentation_filter key with
-		  None -> raise (Wserver.Misc_error "No valid key found for hash")
-		| Some key -> key
-	    else key
-	  in
-	  let keystr = Key.to_string key in
-	  let aakeys = Armor.encode_pubkey_string keystr in
-	  ("text/html; charset=UTF-8",
-	   1,
-	   HtmlTemplates.page  
-	     ~title:(sprintf "Public Key Server -- Get ``%s ''" hash_str)
-	     ~body:(sprintf "\r\n<pre>\r\n%s\r\n</pre>\r\n" aakeys)
-	  )
-
+	  (try
+	    let hash_str = List.hd request.search in
+	    plerror 4 "/pks/lookup: Hash search: %s" hash_str;
+	    let hash = KeyHash.dehexify hash_str in
+	    flush Pervasives.stdout;
+	    let key = Keydb.get_by_hash hash in
+	    let key = 
+	      if request.clean then
+	        (match Fixkey.presentation_filter key with
+		  | None -> raise (Wserver.Page_not_found "No valid key found for hash")
+		  | Some key -> key
+		)
+	      else key
+	    in
+	    let keystr = Key.to_string key in
+	    let aakeys = Armor.encode_pubkey_string keystr in
+	    ("text/html; charset=UTF-8",
+	     1,
+	     HtmlTemplates.page  
+	       ~title:(sprintf "Public Key Server -- Get ``%s ''" hash_str)
+	       ~body:(sprintf "\r\n<pre>\r\n%s\r\n</pre>\r\n" aakeys)
+	    )
+	  with
+	    | Invalid_argument "char out of range for hex conversion" ->
+	        raise (Wserver.Bad_request 
+		        ("Char out of range for hex conversion"))
+	    | Invalid_argument "Insufficiently specific words" ->
+	        raise (Wserver.Bad_request 
+		        ("Insufficiently specific words: provide " ^
+			  "at least one more specific keyword"))
+	    | Invalid_argument "Too many responses" ->
+		raise (Wserver.Entity_too_large 
+		         "Too many responses, unable to process query")
+	    | Not_found -> 
+	        raise (Wserver.Page_not_found "Requested hash not found")
+          )
       | Index | VIndex ->  
 	  (* VIndex requests are treated indentically to index requests *)
 	  plerror 4 "/pks/lookup: Index request: (%s)" 
 	    (String.concat " " request.search);
-	  let keys = lookup_keys request.search in
-	  let count = List.length keys in
-	  let keys = truncate request.limit keys in
-	  let hashes = List.map ~f:KeyHash.hash keys in
-	  let keys = clean_keys request keys in
-	  if request.machine_readable then 
-	    ("text/plain",
-	     count,
-	     MRindex.keys_to_index keys)
-	  else 
-	    begin
-	      try
-		let output = 
-		  if request.kind = VIndex then
-		    List.map2 keys hashes
-		      ~f:(Index.key_to_lines_verbose 
-			    ~get_uids:(get_uids request) request) 
-		  else
-		    List.map2 keys hashes
-		      ~f:(Index.key_to_lines_normal request) 
-		in
-		let output = List.flatten output in
-		let pre = HtmlTemplates.preformat_list 
-			    (Index.keyinfo_header request :: output)
-		in
-		("text/html; charset=UTF-8",
-		 count,
-		 HtmlTemplates.page ~body:pre
-		   ~title:(sprintf "Search results for '%s'" 
-			     (String.concat ~sep:" " request.search))
-		)
-
-	      with
-		| Invalid_argument "Insufficiently specific words" ->
-		    raise (Wserver.Misc_error 
-			     ("Insufficiently specific words: provide " ^
-			      "at least one more specific keyword"))
-
-		| Invalid_argument "Too many responses" ->
-		    raise (Wserver.Misc_error 
-			     "Too many responses, unable to process query")
-	    end
+	  (try
+	    let keys = lookup_keys request.search in
+	    let count = List.length keys in
+	    let keys = truncate request.limit keys in
+	    let hashes = List.map ~f:KeyHash.hash keys in
+	    let keys = clean_keys request keys in
+	    let output = 
+	      if request.kind = VIndex then
+	        List.map2 keys hashes
+		  ~f:(Index.key_to_lines_verbose 
+			~get_uids:(get_uids request) request) 
+	      else
+		List.map2 keys hashes
+		  ~f:(Index.key_to_lines_normal request) 
+	    in
+	    let output = List.flatten output in
+	    let pre = HtmlTemplates.preformat_list 
+			(Index.keyinfo_header request :: output)
+	    in
+	    if request.machine_readable then 
+	      ("text/plain",
+	      count,
+	      MRindex.keys_to_index keys) 
+	    else 
+	      ("text/html; charset=UTF-8",
+	        count,
+		HtmlTemplates.page ~body:pre
+		  ~title:(sprintf "Search results for '%s'" 
+		             (String.concat ~sep:" " request.search))
+	      )
+	  with
+	    | Invalid_argument "Insufficiently specific words" ->
+	        raise (Wserver.Bad_request 
+		        ("Insufficiently specific words: provide " ^
+			  "at least one more specific keyword"))
+	    | Invalid_argument "String.sub" ->
+		raise (Wserver.Bad_request 
+		         "Request incomplete")
+	    | Invalid_argument "Too many responses" ->
+		raise (Wserver.Entity_too_large 
+		         "Too many responses, unable to process query")
+	  )
+    )
+  )
 
   let string_to_oplist s = 
     let s = Wserver.strip s in 
-    try
+    (try
       let (base,op_string) = chsplit '?' s in
       let oplist = Str.split amp op_string in
       let pairs = List.map ~f:(chsplit '=') oplist in
@@ -345,6 +377,7 @@ struct
       (base,oplist)
     with
 	Not_found -> (s,[])
+    )
 
   let get_extension s = 
     let pos = String.rindex s '.' in
@@ -363,10 +396,10 @@ struct
       (MList.to_string ~f:(fun x -> x) r.search)
 
   let get_keystrings_from_hashes hashes = 
-    let rec loop hashes keystrings = match hashes with
-	[] -> keystrings
+    let rec loop hashes keystrings = (match hashes with
+      | [] -> keystrings
       | hash::tl -> 
-	  try 
+	  (try 
 	    let keystring = Keydb.get_keystring_by_hash hash in
 	    loop tl (keystring::keystrings)
 	  with
@@ -374,6 +407,8 @@ struct
 		eplerror 2 e "Error fetching key from hash %s" 
 		(KeyHash.hexify hash);
 		loop tl keystrings
+	  )
+      )
     in
     loop hashes []
 
@@ -388,11 +423,9 @@ struct
 	       )
       ~finally:(fun () -> close_in f)
 
-
   let is_safe char = 
     (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || 
     (char >= '0' && char <= '9') || (char = '.') || (char = '-')
-    
 
   let verify_web_fname fname = 
     let bad = ref false in
@@ -405,8 +438,8 @@ struct
 
   let convert_web_fname fname =
     if verify_web_fname fname then
-      Filename.concat !Settings.basedir (Filename.concat "web" fname)
-    else raise (Wserver.Misc_error "Malformed requst")
+      Filename.concat !Settings.webdir fname
+    else raise (Wserver.Bad_request "Malformed requst")
 
   let supported_extensions = 
     [ ".jpg",   "image/jpeg";
@@ -425,7 +458,7 @@ struct
       ".js",    "application/javascript";
     ]
 
-  (* Search list for web page index files *)
+  (** Search list for web page index files *)
   let index_files =
     [ "index.html";
       "index.htm";
@@ -435,20 +468,21 @@ struct
     ]
 
   (** Handler for HTTP requests *)
-  let index_page_filename = 
-    let index_file_exists x = Sys.file_exists (convert_web_fname x) in 
-    let found_files = List.filter (fun x -> index_file_exists x = true) index_files in
+  let index_page_filename =
+    let index_file_exists x = Sys.file_exists (convert_web_fname x) in
+    let found_files = List.filter ( fun x -> index_file_exists x = true) index_files in
       try	List.hd found_files
-	with Failure "hd" -> "index.html"
-  
+      with Failure "hd" -> "index.html"
+
   let index_page_mime =
-    let period = Str.regexp_string "." in   
-      match Str.split period index_page_filename with
-	| _::ext::_ -> List.assoc ("." ^ ext) supported_extensions
-	| _ -> raise(Wserver.Misc_error ("No mime type found for index page"))
-		
+    let period = Str.regexp_string "." in
+      (match Str.split period index_page_filename with
+      | _::ext::_ -> List.assoc ("." ^ ext) supported_extensions
+      | _ -> raise(Wserver.Misc_error ("No mime type found for index page"))
+      )
+
   let webhandler addr msg cout = 
-    match msg with 
+    (match msg with 
       | Wserver.GET (request,headers) ->
 	  plerror 5 "Get request: %s => %s" 
 	    (sockaddr_to_string addr) request;
@@ -486,8 +520,8 @@ struct
 	  )
       | Wserver.POST (request,headers,body) ->
 	  let request = Wserver.strip request in
-	  match request with
-	      "/pks/add" ->
+	  (match request with
+	    | "/pks/add" ->
 		let keytext = Scanf.sscanf body "keytext=%s" (fun s -> s) in
 		let keytext = Wserver.decode keytext in
 		let keys = Armor.decode_pubkey keytext in
@@ -546,7 +580,8 @@ struct
 				     ~title:"Unexpected POST request" 
 				     ~body:"");
 		("text/html; charset=UTF-8", -1)
-
+            )
+    )
 
   (** Prepare handler for use with eventloop by transforming system
     channels to Channel objects and by returning empty list instead 
@@ -569,7 +604,7 @@ struct
 
   (** Handler for commands coming off of the db_command_addr *)
   let command_handler addr cin cout = 
-    match (unmarshal cin).msg with
+    (match (unmarshal cin).msg with
       | LogQuery (count,timestamp) -> 
 	  let logresp = Keydb.logquery ~maxsize:count timestamp in
 	  let length = List.length logresp in
@@ -621,7 +656,6 @@ struct
 	  plerror 3 "Returning set of %d keys" (List.length keys);
 	  marshal cout (Keys keys)
 
-
       | Config (s,cvar) ->
 	  plerror 4 "Received config message";
 	  (match (s,cvar) with
@@ -632,12 +666,11 @@ struct
 	     | (str,value) ->
 		 perror "Unexpected config request <%s>" str
 	  )
-	  
 
       | m -> 
 	  marshal cout ProtocolError;
 	  perror "Unexpected (%s) message" (msg_to_string m)
-
+      )
 
   (***********************************************************************)
 
@@ -645,7 +678,7 @@ struct
     might be more keys to be handled. *)
   let rec transmit_single_key () = 
     let txn = Keydb.txn_begin () in
-    try
+    (try
       match (try Some (Keydb.dequeue_key ~txn)
 	     with Not_found -> None)
       with
@@ -683,7 +716,7 @@ struct
 	  e -> 
 	    Keydb.txn_abort txn;
 	    raise e
-	      
+      )
 
   (** Transmit all enqueued keys to other hosts *)
   let transmit_keys () = 
@@ -750,8 +783,6 @@ struct
 		     ~timeout:!Settings.wserver_timeout
 		     ~cb:(Wserver.accept_connection webhandler ~recover_timeout:1))))
       )
-
-
 
   let run () = 
     protect ~f:run

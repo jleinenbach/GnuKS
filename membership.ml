@@ -1,26 +1,27 @@
-(************************************************************************)
-(* membership.ml - Simple module for loading membership information.    *)
-(*                 Currently only loads membership from membership file.*)
-(*                 @author Yaron M. Minsky                              *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* membership.ml - Simple module for loading membership information.   *)
+(*                 Currently only loads membership from membership     *)
+(*                 file.                                               *)
+(*                 @author Yaron M. Minsky                             *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 open StdLabels
 open MoreLabels
@@ -113,7 +114,7 @@ let refresh_member members n =
       end
 
 let reload_if_changed () = 
-  let fname = Lazy.force Settings.membership_file in
+  let fname = !Settings.membership_file in
   let (mshp,old_mtime) = !membership in
   match get_mtime fname with
     | None -> 
@@ -139,7 +140,7 @@ let reload_if_changed () =
 	  )
 
 let get_names () = 
-  let file = Lazy.force Settings.membership_file in
+  let file = !Settings.membership_file in
   let mshp = 
     if not (Sys.file_exists file) then [||]
     else (
@@ -161,7 +162,7 @@ let same_inet_addr addr1 addr2 =
     | _ -> false
 
 let rec choose () =
-  if Sys.file_exists (Lazy.force Settings.membership_file) then begin
+  if Sys.file_exists (!Settings.membership_file) then begin
     reload_if_changed ();
     let (mshp, _) = !membership in
     let choice = Random.int (Array.length mshp) in
@@ -211,7 +212,7 @@ let load_mailsync_partners fname =
   protect ~f:run ~finally:(fun () -> close_in file)
 
 let reload_mailsync_if_changed () = 
-  let fname = Lazy.force Settings.mailsync_file in
+  let fname = !Settings.mailsync_file in
   let (msync,old_mtime) = !mailsync_partners in
   match get_mtime fname with
       None -> plerror 2 "%s" 
@@ -221,7 +222,7 @@ let reload_mailsync_if_changed () =
 
 let get_mailsync_partners () = 
   let partners = 
-    if Sys.file_exists (Lazy.force Settings.membership_file) then (
+    if Sys.file_exists (!Settings.membership_file) then (
       reload_mailsync_if_changed ();
       let (m,mtime) = !mailsync_partners in
       m

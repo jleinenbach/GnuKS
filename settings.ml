@@ -1,31 +1,56 @@
-(************************************************************************)
-(* settings.ml - Various and sundry settings with their defaults, plus  *)
-(*              functions for assigning new values.  This is used by the*)
-(*              getopt routines to set preferences                      *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* settings.ml - Various and sundry settings with their defaults, plus *)
+(*               functions for assigning new values.  This is used by  *)
+(*               the getopt routines to set preferences                *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 open StdLabels
 open MoreLabels
 module Unix=UnixLabels
 open Printf
+
+(** Directory settings *)
+
+let basedir = ref "__BASEDIR__"
+let confdir = ref "__CONFDIR__"
+let rundir = ref "__RUNDIR__"
+let logdir = ref "__LOGDIR__"
+let diffdir = ref "__DIFFDIR__"
+
+let dbdir = ref "__DBDIR__"
+let ptree_dbdir = ref "__PTREE_DBDIR__"
+let webdir = ref "__WEBDIR__"
+let dumpdir = ref "__DUMPDIR__"
+
+let base_membership_file = "membership"
+let base_mailsync_file = "mailsync"
+let base_msgdir = "messages"
+let base_failed_msgdir = "failed_messages"
+
+let membership_file = ref (Filename.concat !confdir base_membership_file)
+let mailsync_file = ref (Filename.concat !confdir base_mailsync_file)
+let msgdir = ref (Filename.concat !diffdir base_msgdir)
+let failed_msgdir = ref (Filename.concat !diffdir base_failed_msgdir)
+
+(***********************************************************************)
 
 let n = ref 0
 let set_n value = n := value
@@ -185,7 +210,7 @@ let set_membership_reload_time value =
 
 (** whether to send out PKS-style mailsync messages *)
 let send_mailsyncs = ref true
-(** WHether to log hashes of most-recently-found diff *)
+(** whether to log hashes of most-recently-found diff *)
 let log_diffs = ref true
 
 let from_addr = ref None
@@ -200,23 +225,7 @@ let get_from_addr () =
 	from_addr := Some addr;
 	addr
 
-let basedir = ref "."
-
-let base_dbdir = "KDB"
-let base_ptree_dbdir = "PTree"
-let base_membership_file = "membership"
-let base_mailsync_file = "mailsync"
-let base_dumpdir = "dump"
-let base_msgdir = "messages"
-let base_failed_msgdir = "failed_messages"
-
-let dbdir = lazy (Filename.concat !basedir base_dbdir)
-let ptree_dbdir = lazy (Filename.concat !basedir base_ptree_dbdir)
-let membership_file = lazy (Filename.concat !basedir base_membership_file)
-let mailsync_file = lazy (Filename.concat !basedir base_mailsync_file)
-let dumpdir = lazy (Filename.concat !basedir base_dumpdir)
-let msgdir = lazy (Filename.concat !basedir base_msgdir)
-let failed_msgdir = lazy (Filename.concat !basedir base_failed_msgdir)
+let use_stdin = ref false
 
 (*****************************************************************)
 
@@ -249,15 +258,23 @@ let parse_spec =
      " Pagesize in bytes for prefix tree db");
     ("-ptree_cache", Arg.Int set_ptree_cache_bytes, 
      " Cache size in megs for prefix tree db");
-    ("-baseport",Arg.Int set_base_port, " Set base port number");
-    ("-logfile",Arg.String (fun _ -> ()), " DEPRECATED.  Now ignored.");
-    ("-recon_port",Arg.Int set_recon_port, " Set recon port number");
-    ("-recon_address",Arg.String set_recon_address, " Set recon binding address"); 
-    ("-hkp_port",Arg.Int set_hkp_port, " Set hkp port number");
-    ("-hkp_address",Arg.String set_hkp_address, " Set hkp binding address"); 
-    ("-use_port_80",Arg.Set use_port_80, 
+    ("-baseport", Arg.Int set_base_port, " Set base port number");
+    ("-logfile", Arg.String (fun _ -> ()), " DEPRECATED.  Now ignored.");
+    ("-recon_port", Arg.Int set_recon_port, " Set recon port number");
+    ("-recon_address", Arg.String set_recon_address, " Set recon binding address"); 
+    ("-hkp_port", Arg.Int set_hkp_port, " Set hkp port number");
+    ("-hkp_address", Arg.String set_hkp_address, " Set hkp binding address"); 
+    ("-use_port_80", Arg.Set use_port_80, 
      " Have the HKP interface listen on port 80, as well as the hkp_port"); 
+    ("-confdir", Arg.Set_string confdir, " Directory of all config files");
     ("-basedir", Arg.Set_string basedir, " Base directory");
+    ("-dbdir", Arg.Set_string dbdir, " Database directory");
+    ("-ptree_dbdir", Arg.Set_string ptree_dbdir, " PTree database directory");
+    ("-webdir", Arg.Set_string webdir, " Webserver directory");
+    ("-logdir", Arg.Set_string logdir, " Directory used for logfiles");
+    ("-rundir", Arg.Set_string rundir, " Run directory");
+    ("-diffdir", Arg.Set_string diffdir, " Diff directory");
+    ("-dumpdir", Arg.Set_string dumpdir, " Directory with the keydump files");
     ("-stdoutlog", Arg.Clear filelog, 
      " Send log messages to stdout instead of log file");
     ("-diskptree", Arg.Set disk_ptree, 
@@ -318,6 +335,8 @@ let parse_spec =
      " Disable sending of PKS mailsync messages.  ONLY FOR STANDALONE SERVERS!");
     ("-disable_log_diffs", Arg.Clear log_diffs,
      " Disable logging of recent hashset diffs.");
+    ("-stdin", Arg.Set use_stdin,
+     " Read keyids from stdin (sksclient only)");
   ]
 
 let parse_spec = Arg.align parse_spec
@@ -327,6 +346,3 @@ let anon_options option_string =
 
 let usage_string = 
   "sks command [-mbar mbar] [-q bitquantum] -debug  (type \"sks help\" for a list of commands)"
-
-
-

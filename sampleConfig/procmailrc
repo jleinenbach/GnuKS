@@ -14,13 +14,13 @@ PATH=/usr/bin
 # Bounce and loop detection
 :0
 * ^FROM_DAEMON
-* ^X-Loop:.*pgp-public-keys@gingerbear.net
+* ^X-Loop:.*pgp-public-keys@ccc-hanau.de
 $DEFAULT
 
 # Handle your keysync mails (optional)
 :0
-* ^Subject.*incremental
-| /usr/bin/sks_add_mail /var/sks/
+* ^Subject.*(incremental|add)
+| /usr/lib/sks/sks_add_mail /var/spool/sks/
 
 # Anything leftover
 :0

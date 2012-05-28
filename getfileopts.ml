@@ -1,24 +1,24 @@
-(************************************************************************)
-(* getfileopts.ml - Loads settings from settings file.                  *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* getfileopts.ml - Loads settings from settings file.                 *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 open StdLabels
 open MoreLabels
@@ -128,14 +128,14 @@ let () =
     then (
       parse Sys.argv;
       let from_file_commandline = 
-	fname_convert (Filename.concat !basedir config_fname)
+	fname_convert (Filename.concat !Settings.confdir config_fname)
       in
       parse from_file_commandline
     )
     else (
       parse (Sys.argv <|> (0,!pos));
       let from_file_commandline = 
-	fname_convert (Filename.concat !basedir config_fname)
+	fname_convert (Filename.concat !Settings.confdir config_fname)
       in
       parse from_file_commandline;
       parse (Array.append [|""|] (Sys.argv <|> (!pos + 1,0)))

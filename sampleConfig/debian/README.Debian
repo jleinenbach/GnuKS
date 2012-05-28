@@ -1,0 +1,37 @@
+Some hints to setup your keyserver:
+
+If you install a new keyserver you might need a fresh keydump to start
+with. At the time of this writing you could get one from
+
+http://key-server.org/dump/
+
+If you don't find one feel free to ask on the SKS mailing list.
+
+You can retrieve the keydump by executing following commands as the
+root user (or just su to debian-sks user)):
+
+ cd /var/lib/sks/dump
+ su debian-sks -c "wget http://key-server.org/dump/gnuks-dump.tar.bz2"
+ or
+ su debian-sks -c "wget -q -r -np -nd -A pgp http://ftp.prato.linux.it/pub/keyring/dump-latest/ -e robots=off"
+
+To build the database from the keydumps call:
+
+ su debian-sks -c "/usr/lib/sks/sks_build.sh"
+ or
+ su debian-sks -c "/usr/sbin/sks_build.sh"
+
+To make the server start you have to edit the defaults file:
+
+ vi /etc/default/sks
+
+If you want to connect to the global sks-network, send a mail to
+pgp-keyserver-folk@flame.org or sks-devel@nongnu.org and ask for
+gossip partners. Include the partners in /etc/sks/membership.
+
+-----
+
+Thanks to Peter Palfrader <weasel@debian.org> for building the
+original Debian package.
+
+ -- Ondřej Surý <ondrej@debian.org>, Thu, 19 May 2011 11:55:48 +0200

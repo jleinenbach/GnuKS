@@ -54,7 +54,7 @@ Build key database, doesn't include keys directly in database, faster than build
 
 Build prefix-tree database, used by reconciliation server, from key database. Allows for specification of cache for key database and for ptree database.
 
-=item dump #keys dumpdir
+=item dump numkeys dumpdir
 
 Create a raw dump of the keys in the database.
 
@@ -166,9 +166,41 @@ Set hkp binding addresses.  Can be a list of whitespace separated IP addresses o
 
 Have the HKP interface listen on port 80, as well as the hkp_port.
 
+=item -confdir
+
+Set the confguration directory with the files sksconf, membership and mailsync.
+
 =item -basedir
 
-Set base directory.
+Set base directory path.
+
+=item -dbdir
+
+Set the KDB database directory path.
+
+=item -ptree_dbdir
+
+Set the PTree database directory path.
+
+=item -webdir
+
+Set the web server directory path.
+
+=item -logdir
+
+Set the location of the logfiles directory.
+
+=item -rundir
+
+Set the location for the storage of transient state files.
+
+=item -diffdir
+
+Set the directory path where the key differences are dumped to.
+
+=item -dumpdir
+
+Set the directory path to the keydump files.
 
 =item -stdoutlog
 

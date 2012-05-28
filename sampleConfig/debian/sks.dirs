@@ -1,0 +1,11 @@
+etc/sks
+usr/sbin
+usr/lib/sks
+var/lib/sks
+var/lib/sks/DB
+var/lib/sks/PTree
+var/lib/sks/dump
+var/log/sks
+var/spool/sks/messages
+var/spool/sks/failed_messages
+run/sks

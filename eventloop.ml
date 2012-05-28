@@ -1,24 +1,25 @@
-(************************************************************************)
-(* eventloop.ml -Basic eventloop for picking up timer and socket events *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* eventloop.ml - Basic eventloop for picking up timer and socket      *)
+(*                events                                               *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 open StdLabels
 open MoreLabels
@@ -129,9 +130,9 @@ let create_sock addr =
       Unix.domain_of_sockaddr addr in
     let sock =
       socket ~domain ~kind:SOCK_STREAM ~protocol:0 in
-    setsockopt sock SO_REUSEADDR true;
-    bind sock ~addr;
-    listen sock ~max:20;
+    Unix.setsockopt sock SO_REUSEADDR true;
+    Unix.bind sock ~addr;
+    Unix.listen sock ~max:20;
     sock
   with
     | Unix_error (_,"bind",_) -> 
@@ -143,7 +144,7 @@ let add_events heap evlist =
     evlist
 
 (***************************************************************)
-(*  Event Handlers  *******************************************)
+(*  Event Handlers  ********************************************)
 (***************************************************************)
 
 let handle_socket handler sock =

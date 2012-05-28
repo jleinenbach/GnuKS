@@ -1,28 +1,28 @@
-(************************************************************************)
-(* fastbuild.ml - Executable: Builds up the key database from a multi-  *)
-(*                file database dump. This version works faster by      *)
-(*                virtue of not actually copying the keys out of the    *)
-(*                datbaase dump, and only storing the locations of      *)
-(*                those keys.                                           *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* fastbuild.ml - Executable: Builds up the key database from a multi- *)
+(*                file database dump. This version works faster by     *)
+(*                virtue of not actually copying the keys out of the   *)
+(*                datbaase dump, and only storing the locations of     *)
+(*                those keys.                                          *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 module F(M:sig end) =
 struct
@@ -39,15 +39,15 @@ struct
     Keydb.withtxn = false;
     Keydb.cache_bytes = !Settings.cache_bytes;
     Keydb.pagesize = !Settings.pagesize;
-    Keydb.dbdir = Lazy.force Settings.dbdir;
-    Keydb.dumpdir = Lazy.force Settings.dumpdir;
+    Keydb.dbdir = !Settings.dbdir;
+    Keydb.dumpdir = !Settings.dumpdir;
   }
 
   module Keydb = Keydb.Unsafe
 
   let n = match !Settings.n with 0 -> 1 | x -> x
   let maxkeys = n * 15000 
-  let dumpdir = Lazy.force Settings.dumpdir
+  let dumpdir = !Settings.dumpdir
 
   let lsdir dir = 
     let dirhandle = Unix.opendir dir in
@@ -149,23 +149,25 @@ struct
 
   let dbtimer = MTimer.create ()
   let timer = MTimer.create ()
-  
-  (***************************************************************)
-
-  let () = Sys.set_signal Sys.sigusr1 Sys.Signal_ignore
-  let () = Sys.set_signal Sys.sigusr2 Sys.Signal_ignore
 
   (***************************************************************)
-  
+  (* Ignore or the build process may break.                      *)
+  (* by Kristian Fiskerstrand                                    *)
+
+      let () = Sys.set_signal Sys.sigusr1 Sys.Signal_ignore
+      let () = Sys.set_signal Sys.sigusr2 Sys.Signal_ignore
+
+  (***************************************************************)
+
   let run () = 
     set_logfile "fastbuild";
 
-    if Sys.file_exists (Lazy.force Settings.dbdir) then (
+    if Sys.file_exists (!Settings.dbdir) then (
       perror "KeyDB directory already exists.  Exiting.";
       eprintf "KeyDB directory already exists.  Exiting.\n";
       exit (-1)
     );
-    Unix.mkdir (Lazy.force Settings.dbdir) 0o700;
+    Unix.mkdir (!Settings.dbdir) 0o700;
 
     Keydb.open_dbs settings;
     Keydb.set_meta ~key:"filters" ~data:"yminsky.dedup"; 

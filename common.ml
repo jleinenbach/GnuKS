@@ -1,25 +1,25 @@
-(************************************************************************)
-(* common.ml- Common services, including error reporting, logging,      *)
-(*            exception handling and port definitions                   *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
+
+(** Common services, including error reporting, logging,
+  exception handling and port definitions  *)
 
 open Printf
 open StdLabels
@@ -45,13 +45,14 @@ let enforced_filters = ["yminsky.dedup"]
 
 let version_tuple = (__VERSION__)
 let compatible_version_tuple = (0,1,5)
+let software = "GnuKS"
 let version =
   let (maj_version,min_version,release) = version_tuple in
   sprintf "%d.%d.%d" maj_version min_version release
 
 let compatible_version_string =
-	let (maj_version,min_version,release) = compatible_version_tuple in 
-	sprintf "%d.%d.%d" maj_version min_version release 
+  let (maj_version,min_version,release) = compatible_version_tuple in
+  sprintf "%d.%d.%d" maj_version min_version release
 
 let period_regexp = Str.regexp "[.]"
 
@@ -92,7 +93,7 @@ let plerror level format =
 
 let set_logfile extension =
   if !Settings.filelog then
-    let fname = (Filename.concat !Settings.basedir extension) ^ ".log" in
+    let fname = (Filename.concat !Settings.logdir extension) ^ ".log" in
     stored_logfile_name := Some fname;
     logfile := open_out_gen [ Open_wronly; Open_creat; Open_append; ]
       0o600 fname;
@@ -220,8 +221,8 @@ let recon_port = !Settings.recon_port
 let recon_address = !Settings.recon_address
 let http_port = !Settings.hkp_port
 let http_address = !Settings.hkp_address
-let db_command_name = Filename.concat !Settings.basedir "db_com_sock"
-let recon_command_name = Filename.concat !Settings.basedir "recon_com_sock"
+let db_command_name = Filename.concat !Settings.rundir "db_com_sock"
+let recon_command_name = Filename.concat !Settings.rundir "recon_com_sock"
 
 let db_command_addr = Unix.ADDR_UNIX db_command_name
 let recon_command_addr = Unix.ADDR_UNIX recon_command_name

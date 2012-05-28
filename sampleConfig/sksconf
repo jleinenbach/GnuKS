@@ -10,13 +10,13 @@
 #recon_address: 0.0.0.0
 
 # Set recon port number
-#recon_port: 11370
+recon_port: 11370
 
 # Set hkp binding address
 #hkp_address: 0.0.0.0
 
 # Set hkp port number
-#hkp_port: 11371
+hkp_port: 11371
 
 # Have the HKP interface listen on port 80, as well as the hkp_port
 #use_port_80:
@@ -30,3 +30,31 @@
 
 # Runs database statistics calculation on boot (time and cpu expensive)
 #initial_stat:
+stat_hour: 5
+
+# debuglevel 4 is default (max debug level is 10)
+debuglevel: 4
+
+checkpoint_interval: 1000
+
+# Debian:
+basedir: /var/lib/sks
+confdir: /etc/sks
+dbdir: /var/lib/sks/DB
+ptree_dbdir: /var/lib/sks/PTree
+dumpdir: /var/lib/sks/dump
+webdir: /var/lib/sks/www
+logdir: /var/log/sks
+rundir: /run/sks
+diffdir: /var/spool/sks
+
+# SKS defaults
+#basedir: .
+#confdir: .
+#dbdir: ./KDB
+#ptree_dbdir: ./PTree
+#dumpdir: ./dump
+#webdir: ./web
+#logdir: .
+#rundir: .
+#diffdir: .

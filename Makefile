@@ -14,10 +14,14 @@
 #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 #   USA 
 #
-CINCLUDES=-I`ocamlc -where`
+CINCLUDES=-I`ocamlopt -where`
 CC=gcc
 CXX=g++
-CFLAGS=-O3 -Werror-implicit-function-declaration $(CINCLUDES) -I .
+
+#32 bit
+#CFLAGS=-O3 -Wall $(CINCLUDES) -I .
+#64 bit multithread save
+CFLAGS=-O3 -Wall -D_FILE_OFFSET_BITS=64 -D_REENTRANT $(CINCLUDES) -I .
 CXXFLAGS=-O3 $(CINCLUDES) -I .
 
 ifndef OCAMLC
@@ -37,7 +41,34 @@ export CAMLP4O
 include Makefile.local
 
 ifndef PREFIX
-	PREFIX=/usr/local
+	PREFIX=
+endif
+ifndef BASEDIR
+	BASEDIR=$(PREFIX)/var/lib/sks
+endif
+ifndef DBDIR
+	DBDIR=$(BASEDIR)/DB
+endif
+ifndef PTREE_DBDIR
+	PTREE_DBDIR=$(BASEDIR)/PTree
+endif
+ifndef WEBDIR
+	WEBDIR=$(BASEDIR)/www
+endif
+ifndef DUMPDIR
+	WEBDIR=$(BASEDIR)/dump
+endif
+ifndef CONFDIR
+	CONFDIR=$(PREFIX)/etc/sks
+endif
+ifndef LOGDIR
+	LOGDIR=$(PREFIX)/var/log/sks
+endif
+ifndef DIFFDIR
+	DIFFDIR=$(PREFIX)/var/spool/sks
+endif
+ifndef RUNDIR
+	RUNDIR=$(PREFIX)/run
 endif
 ifeq ($(BDBLIB),) 
 	OCAMLLIB=
@@ -48,7 +79,7 @@ endif
 CAMLP4=-pp $(CAMLP4O)
 CAMLINCLUDE= -I lib -I bdb
 COMMONCAMLFLAGS=$(CAMLINCLUDE) $(OCAMLLIB) -ccopt -Lbdb -dtypes -ccopt -pthread -ccopt -pg -warn-error A
-OCAMLDEP=ocamldep $(CAMLP4) 
+OCAMLDEP=ocamldep -native $(CAMLP4) 
 CAMLLIBS=unix.cma str.cma bdb.cma nums.cma bigarray.cma cryptokit.cma
 OCAMLFLAGS=$(COMMONCAMLFLAGS) -g $(CAMLLIBS)
 OCAMLOPTFLAGS=$(COMMONCAMLFLAGS) -inline 40 $(CAMLLIBS:.cma=.cmxa) 
@@ -103,7 +134,7 @@ LIBS.bc= lib/cryptokit.cma bdb/bdb.cma
 LIBS=$(LIBS.bc:.cma=.cmxa)
 
 VERSION := $(shell cat VERSION)
-VERSIONPREFIX = sks-$(VERSION)
+VERSIONPREFIX = gnuks-$(VERSION)
 COMMA_VERSION := $(shell cat VERSION | sed y/./,/)
 FILES := $(shell sed s/.*/$(VERSIONPREFIX)\\/\&/ FILES)
 
@@ -122,17 +153,29 @@ keyMerge.cmo: keyMerge.ml
 keyMerge.cmx: keyMerge.ml
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) $(CAMLP4) -c $<
 
+settings.cmo: settings.ml
+	$(OCAMLC) $(OCAMLFLAGS) \
+	-pp "sed -e s,__BASEDIR__,$(BASEDIR), -e s,__DBDIR__,$(DBDIR), -e s,__PTREE_DBDIR__,$(PTREE_DBDIR), -e s,__WEBDIR__,$(WEBDIR), -e s,__DUMPDIR__,$(DUMPDIR), -e s,__CONFDIR__,$(CONFDIR), -e s,__LOGDIR__,$(LOGDIR), -e s,__DIFFDIR__,$(DIFFDIR), -e s,__RUNDIR__,$(RUNDIR)," -c $<
+
+settings.cmx: settings.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) \
+	-pp "sed -e s,__BASEDIR__,$(BASEDIR), -e s,__DBDIR__,$(DBDIR), -e s,__PTREE_DBDIR__,$(PTREE_DBDIR), -e s,__WEBDIR__,$(WEBDIR), -e s,__DUMPDIR__,$(DUMPDIR), -e s,__CONFDIR__,$(CONFDIR), -e s,__LOGDIR__,$(LOGDIR), -e s,__DIFFDIR__,$(DIFFDIR), -e s,__RUNDIR__,$(RUNDIR)," -c $<
+
 # Special targets 
 
 install: 
-	mkdir -p $(PREFIX)/bin
-	install sks_build.sh sks sks_add_mail $(PREFIX)/bin
+	mkdir -p $(USRSBINDIR)
+	install sks_build.sh sks $(USRSBINDIR)
+	mkdir -p $(USRLIBDIR)
+	install sks_add_mail $(USRLIBDIR)
 	mkdir -p $(MANDIR)/man8
 	install sks.8.gz $(MANDIR)/man8
 
 install.bc: 
-	mkdir -p $(PREFIX)/bin
-	install sks_build.bc.sh sks.bc sks_add_mail.bc $(PREFIX)/bin
+	mkdir -p $(USRSBINDIR)
+	install sks_build.bc.sh sks.bc $(USRSBINDIR)
+	mkdir -p $(USRLIBDIR)
+	install sks_add_mail.bc $(USRLIBDIR)
 	mkdir -p $(MANDIR)/man8
 	install sks.8.gz $(MANDIR)/man8
 
@@ -151,7 +194,7 @@ sks.8.gz: sks.8
 	gzip -f sks.8
 
 sks.8: sks.pod
-	pod2man -c "SKS OpenPGP Key server" --section 8 -r 0.1 -name sks sks.pod sks.8
+	pod2man -c "GnuKS OpenPGP Key server" --section 8 -r 0.1 -name sks sks.pod sks.8
 
 spider: $(LIBS) $(ALLOBJS) spider.cmx
 	$(OCAMLOPT) -o spider $(OCAMLOPTFLAGS) $(ALLOBJS) spider.cmx
@@ -215,7 +258,7 @@ sks_add_mail: $(LIBS) pMap.cmx pSet.cmx add_mail.cmx
 
 ocamldoc.out: $(ALLOBJS) $(EXEOBJS)
 	ocamldoc -hide Pervasives,UnixLabels,MoreLabels \
-	-dot $(CAMLP4O) -d doc -I lib -I bdb *.ml *.mli
+	-dot $(CAMLP4O) -d doc -I lib -I bdb *.mli *.ml
 
 sks_logdump.bc: $(LIBS.bc) $(ALLOBJS.bc) logdump.cmo
 	$(OCAMLC) -o sks_logdump.bc $(OCAMLFLAGS) $(ALLOBJS.bc) logdump.cmo
@@ -245,15 +288,15 @@ modules.ps: modules.dot
 doc: $(ALLOBJS) $(EXEOBJS)
 	mkdir -p doc
 	ocamldoc -hide Pervasives,UnixLabels,MoreLabels \
-	-html $(CAMLP4O) -d doc -I lib -I bdb *.ml *.mli
+	-html $(CAMLP4O) -d doc -I lib -I bdb *.mli *.ml
 
 dist:
 	cd .. && \
 	tar cvfz sks.tgz \
-	sks/*.ml sks/*.mli sks/*.c sks/Makefile \
+	sks/*.mli sks/*.ml sks/*.c sks/Makefile \
 	sks/.depend sks/*.tar.gz \
-	sks/bdb/Makefile sks/bdb/*.ml sks/bdb/*.mli sks/bdb/*.c \
-	sks/bdb/*.h sks/README sks/COPYING sks/VERSION sks/FILES \
+	sks/bdb/Makefile sks/bdb/*.mli sks/bdb/*.ml sks/bdb/*.c \
+	sks/bdb/*.h sks/README sks/LICENSE sks/VERSION sks/FILES \
 	sks/Makefile.local.unused sks/sks.8
 
 ##################################
@@ -279,27 +322,26 @@ prepared:
 	touch prepared
 
 
-CKVER=cryptokit-1.5
-CKDIR=$(CKVER)/src
+CKDIR=cryptokit-1.5
 
-$(CKVER)/README.txt: 
-	tar xmvfz $(CKVER).tar.gz
+$(CKDIR)/README.txt: 
+	tar xmvfz $(CKDIR).tar.gz
 
-$(CKDIR)/cryptokit.cma: $(CKVER)/README.txt
+$(CKDIR)/cryptokit.cma: $(CKDIR)/README.txt
 	cd $(CKDIR) && $(MAKE) all
 
-$(CKDIR)/cryptokit.cmxa: $(CKVER)/README.txt
-	cd $(CKDIR) && $(MAKE) allopt
+$(CKDIR)/cryptokit.cmxa: $(CKDIR)/README.txt
+	cd $(CKDIR) && $(MAKE) all
 
 lib/cryptokit.cma: $(CKDIR)/cryptokit.cma $(CKDIR)/cryptokit.cmxa prepared
-	cp $(CKDIR)/cryptokit.cmi $(CKDIR)/cryptokit.cma \
-	   $(CKDIR)/cryptokit.mli lib
-	cp $(CKDIR)/libcryptokit.a lib
-	if test -f $(CKDIR)/dllcryptokit.so; then \
-	   cp $(CKDIR)/dllcryptokit.so lib; fi
-	if test -f $(CKDIR)/cryptokit.cmxa; then \
-	   cp $(CKDIR)/cryptokit.cmxa $(CKDIR)/cryptokit.cmx \
-	   $(CKDIR)/cryptokit.a lib; fi
+	cp $(CKDIR)/_build/src/cryptokit.cmi $(CKDIR)/_build/src/cryptokit.cma \
+	   $(CKDIR)/_build/src/cryptokit.mli lib
+	cp $(CKDIR)/_build/src/libcryptokit.a lib
+	if test -f $(CKDIR)/_build/src/dllcryptokit.so; then \
+	   cp $(CKDIR)/_build/src/dllcryptokit.so lib; fi
+	if test -f $(CKDIR)/_build/src/cryptokit.cmxa; then \
+	   cp $(CKDIR)/_build/src/cryptokit.cmxa $(CKDIR)/_build/src/cryptokit.cmx \
+	   $(CKDIR)/_build/src/cryptokit.a lib; fi
 
 lib/cryptokit.cmxa: lib/cryptokit.cma
 
@@ -361,7 +403,7 @@ rcaml: $(LIBS.bc) $(ALLOBJS.bc)
 
 
 # Common rules
-.SUFFIXES: .ml .mli .cmo .cmi .cmx
+.SUFFIXES: .mli .ml .cmo .cmi .cmx
 
 .ml.o:
 	$(OCAMLOPT) -output-obj $(OCAMLOPTFLAGS) $< 
@@ -375,10 +417,10 @@ rcaml: $(LIBS.bc) $(ALLOBJS.bc)
 .c.obj:
 	$(CC) $(CFLAGS) /c $< 
 
-.ml.cmo:
+.mli.cmi:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
 
-.mli.cmi:
+.ml.cmo:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
 
 .ml.cmx:
@@ -400,14 +442,14 @@ clean: mlclean
 
 cleanall: clean bdbclean
 	rm -f lib/*
-	rm -rf $(CKVER)
+	rm -rf $(CKDIR)
 	rm -rf $(NXDIR)
 	rm -rf
 
 # Dependencies
 
 dep: 
-	$(OCAMLDEP) $(INCLUDES) *.ml *.mli > .depend
+	$(OCAMLDEP) $(INCLUDES) *.mli *.ml > .depend
 
 -include .depend
 

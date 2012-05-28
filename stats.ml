@@ -1,24 +1,24 @@
-(************************************************************************)
-(* stats.ml - functions for formatting raw DB stats                     *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* stats.ml - functions for formatting raw DB stats                    *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 open StdLabels
 open MoreLabels
@@ -136,14 +136,15 @@ let info_tables () =
   let settings = 
     sprintf 
       "<h2>Settings</h2>
-     <table summary=\"Keyserver Settings\">
+<table summary=\"Keyserver Settings\">
      <tr><td>Hostname:</td><td>%s</td></tr>
+     <tr><td>Software:</td><td>%s</td></tr>
      <tr><td>Version:</td><td>%s</td></tr>
      <tr><td>HTTP port:</td><td>%d</td></tr>
      <tr><td>Recon port:</td><td>%d</td></tr>
      <tr><td>Debug level:</td><td>%d</td></tr>
 </table>\r\n"
-      !Settings.hostname Common.version
+      !Settings.hostname Common.software Common.version
       http_port recon_port !Settings.debuglevel
   in
   let gossip_peers = 
@@ -178,8 +179,8 @@ let generate_html_stats_page log size =
   let num_keys = sprintf "<p>Total number of keys: %d</p>\n" size  in
   let title = 
     sprintf 
-      "SKS OpenPGP Keyserver statistics<br />Taken at %s"
-      (time_to_tz_string now)
+      "%s OpenPGP Synchronizing Keyserver statistics<br />Taken at %s"
+      Common.software (time_to_tz_string now)
   in
   if Array.length log = 0 then
     HtmlTemplates.page 

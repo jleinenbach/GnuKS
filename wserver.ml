@@ -1,24 +1,24 @@
-(************************************************************************)
-(* wserver.ml - simple web server code                                  *)
-(*                                                                      *)
-(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,  *)
-(*               2011, 2012  Yaron Minsky and Contributors              *)
-(*                                                                      *)
-(* This file is part of SKS.  SKS is free software; you can             *)
-(* redistribute it and/or modify it under the terms of the GNU General  *)
-(* Public License as published by the Free Software Foundation; either  *)
-(* version 2 of the License, or (at your option) any later version.     *)
-(*                                                                      *)
-(* This program is distributed in the hope that it will be useful, but  *)
-(* WITHOUT ANY WARRANTY; without even the implied warranty of           *)
-(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    *)
-(* General Public License for more details.                             *)
-(*                                                                      *)
-(* You should have received a copy of the GNU General Public License    *)
-(* along with this program; if not, write to the Free Software          *)
-(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  *)
-(* USA or see <http://www.gnu.org/licenses/>.                           *)
-(************************************************************************)
+(***********************************************************************)
+(* wserver.ml - simple web server code                                 *)
+(*                                                                     *)
+(* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, *)
+(*               2011, 2012  Yaron Minsky and Contributors             *)
+(*                                                                     *)
+(* This file is part of SKS.  SKS is free software; you can            *)
+(* redistribute it and/or modify it under the terms of the GNU General *)
+(* Public License as published by the Free Software Foundation; either *)
+(* version 2 of the License, or (at your option) any later version.    *)
+(*                                                                     *)
+(* This program is distributed in the hope that it will be useful, but *)
+(* WITHOUT ANY WARRANTY; without even the implied warranty of          *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU   *)
+(* General Public License for more details.                            *)
+(*                                                                     *)
+(* You should have received a copy of the GNU General Public License   *)
+(* along with this program; if not, write to the Free Software         *)
+(* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 *)
+(* USA or see <http://www.gnu.org/licenses/>.                          *)
+(***********************************************************************)
 
 open StdLabels
 open MoreLabels
@@ -30,10 +30,12 @@ open Unix
 module Map = PMap.Map
 module Set = PSet.Set
 
-exception Misc_error of string
+exception Page_not_found of string
 exception No_results of string
 exception Not_implemented of string
-exception Page_not_found of string
+exception Bad_request of string
+exception Entity_too_large of string
+exception Misc_error of string
 
 let ( |= ) map key = Map.find key map
 let ( |< ) map (key,data) = Map.add ~key ~data map 
@@ -176,7 +178,7 @@ let parse_post headers cin =
     let lengthstr = headers |= "content-length" in
     let len = int_of_string lengthstr in
     if len > max_post_length 
-    then raise (Misc_error (sprintf "POST data too long: %f megs" 
+    then raise (Entity_too_large (sprintf "POST data too long: %f megs" 
 			      (float len /. 1024. /. 1024.)));
     let rest = String.create len in
     really_input cin rest 0 len;
@@ -189,7 +191,7 @@ let is_blank line =
   String.length line = 0 || line.[0] = '\r'
 
 let rec parse_headers map cin = 
-  let line = input_line cin in (* DOS attack: input_line is unsafe on sockets *)
+  let line = input_line cin in (* DoS attack: input_line is unsafe on sockets *)
   if is_blank line then map
   else
     let colonpos = try String.index line ':' with
@@ -202,7 +204,7 @@ let rec parse_headers map cin =
     parse_headers (map |< (String.lowercase key, strip data)) cin
     
 let parse_request cin = 
-  let line = input_line cin in (* DOS attack: input_line is unsafe on sockets *)
+  let line = input_line cin in (* DoS attack: input_line is unsafe on sockets *)
   let pieces = Str.split whitespace line in
   let headers = parse_headers Map.empty cin in
   match List.hd pieces with
@@ -244,24 +246,57 @@ let send_result cout ?(error_code = 200) ?(content_type = "text/html; charset=UT
   let text_status =
     match error_code with
       | 200 -> "OK"
-      | 404 -> "Not Found"
-      | 408 -> "Request Timeout"
+      | 201 -> "Created"
+      | 202 -> "Accepted"
+      | 203 -> "Non-Authoritative Information"
+      | 204 -> "No Content"
+      | 205 -> "Reset Content"
+      | 206 -> "Partial Content"
+      | 300 -> "Multiple Choices"
+      | 301 -> "Moved Permanently"
+      | 302 -> "Found"
+      | 303 -> "See Other"
+      | 304 -> "Not Modified"
+      | 305 -> "Use Proxy"
+      | 307 -> "Temporary Redirect"
+      | 400 -> "Bad Request"
+      | 401 -> "Unauthorized"
+      | 403 -> "Forbidden"
+      | 404 -> "Not found"
+      | 405 -> "Method Not Allowed"
+      | 406 -> "Not Acceptable"
+      | 407 -> "Proxy Authentication Required"
+      | 408 -> "Request Time-out"
+      | 409 -> "Conflict"
+      | 410 -> "Gone"
+      | 411 -> "Length Required"
+      | 412 -> "Precondition Failed"
+      | 413 -> "Request Entity Too Large"
+      | 414 -> "Request-URI Too Large"
+      | 415 -> "Unsupported Media Type"
+      | 416 -> "Requested Range Not Satisfiable"
+      | 417 -> "Expectation Failed"
       | 500 -> "Internal Server Error"
       | 501 -> "Not Implemented"
-      | _ -> "???"
+      | 502 -> "Bad Gateway"
+      | 503 -> "Service Unavailable"
+      | 504 -> "Gateway Time-out"
+      | 505 -> "Version Not Supported"
+      | _   -> "???"
   in
   fprintf cout "HTTP/1.0 %03d %s\r\n" error_code text_status;
-  fprintf cout "Server: sks_www/%s\r\n" version;
+  fprintf cout "Server: %s_www/%s\r\n" Common.software version;
   fprintf cout "Content-length: %u\r\n" (String.length body + 2);
   if count >= 0 then
     fprintf cout "X-HKP-Results-Count: %d\r\n" count;
   fprintf cout "Content-type: %s\r\n" content_type;
-  (* 
-   * Hack to force content-disposition for machine readable get request
-   * This should probably be passed down in the request itself. 
+  (*
+   * Kristian Fiskerstrand:
+   * Hack to force content-disposition for machine readable get request.
+   * This should probably be passed down in the request itself.
    *)
   if content_type = "application/pgp-keys; charset=UTF-8" then
-      fprintf cout "Content-disposition: attachment; filename=gpgkey.asc\r\n";
+    fprintf cout "Content-disposition: attachment; filename=gpgkey.asc\r\n";
   (*
    * End Headers here with a final newline
    *)
@@ -313,15 +348,33 @@ let accept_connection f ~recover_timeout addr cin cout =
 		 ~body:(sprintf "Page not found: %s" s)
 	    in
 	    send_result cout ~error_code:404 output
+	
+	| Bad_request s ->
+	    ignore (Unix.alarm recover_timeout);
+	    plerror 2 "Bad request %s: %s" 
+	      (request_to_string request) s;
+	    let output = HtmlTemplates.page ~title:"Bad request"
+		 ~body:(sprintf "Bad request: %s" s)
+	    in
+	    send_result cout ~error_code:400 output
 
 	| No_results s ->
 	    ignore (Unix.alarm recover_timeout);
 	    plerror 2 "No results for request %s: %s"
 	      (request_to_string request) s;
 	    let output = HtmlTemplates.page ~title:"No results found"
-		 ~body:(sprintf "No results found: %s" s)
+	     ~body:(sprintf "No results found: %s" s)
 	    in
 	    send_result cout ~error_code:404 output
+
+	| Entity_too_large s ->
+	    ignore (Unix.alarm recover_timeout);
+	    plerror 2 "Error handling request %s: %s" 
+	      (request_to_string request) s;
+	    let output = HtmlTemplates.page ~title:"Request Entity Too Large"
+		 ~body:(sprintf "Request Entity Too Large: %s" s)
+	    in
+	    send_result cout ~error_code:413 output
 
 	| Misc_error s ->
 	    ignore (Unix.alarm recover_timeout);
@@ -338,7 +391,7 @@ let accept_connection f ~recover_timeout addr cin cout =
 	      (request_to_string request) (Common.err_to_string e);
 	    let output = 
 	      (HtmlTemplates.page ~title:"Error handling request"
-		 ~body:(sprintf "Error handling request.  Exception raised: %s"
+		 ~body:(sprintf "Error handling request. Exception raised: %s"
 			  (Common.err_to_string e)))
 	    in
 	    send_result cout ~error_code:500 output

@@ -1,0 +1,32 @@
+# Put this in /var/lib/sks/[K]DB
+# Get statistics with db_stat -h . -m
+#
+# Set database in memory cache size:
+# Permit 4 cache files of 64Mb:
+#
+set_cachesize	 0	67108864 4
+#
+# Permit up to 256 MB to be memory mapped:
+set_mp_mmapsize         268435456
+
+# http://docs.oracle.com/cd/E17076_02/html/api_reference/C/envset_flags.html
+set_flags		DB_AUTO_COMMIT
+set_flags		DB_TXN_NOSYNC
+set_flags		DB_LOG_AUTOREMOVE
+
+set_lk_detect		DB_LOCK_DEFAULT
+set_tmp_dir		/tmp
+
+# Set the timeout value for locks in this database environment:
+set_lock_timeout	1000
+
+# Set the timeout value for locks in this database environment:
+set_txn_timeout		1000
+
+# Total number of mutexes to allocate:
+mutex_set_max		327680
+
+# Set log values:
+set_lg_regionmax	1048576
+set_lg_max		104857600
+set_lg_bsize		2097152

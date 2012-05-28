@@ -1,7 +1,19 @@
+# Default: Filesystem Hirachy Standard
 BDBLIB=-L/usr/lib
 BDBINCLUDE=-I/usr/include
-PREFIX=/usr/local
-LIBDB=-ldb-4.6
+PREFIX=
+BASEDIR=$(PREFIX)/var/lib/sks
+DBDIR=$($BASEDIR)/DB
+WEBDIR=$(BASEDIR)/www
+DUMPDIR=$(BASEDIR)/dump
+CONFDIR=$(PREFIX)/etc/sks
+LOGDIR=$(PREFIX)/var/log/sks
+DIFFDIR=$(PREFIX)/var/spool/sks
+RUNDIR=$(PREFIX)/run
+# USRSBINDIR=/usr/local/sbin
+USRSBINDIR=$(PREFIX)/usr/sbin
+USRLIBDIR=$(PREFIX)/usr/lib/sks
+LIBDB=-ldb-5.1
 MANDIR=/usr/share/man
 export BDBLIB
 export BDBINCLUDE

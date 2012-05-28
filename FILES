@@ -1,14 +1,13 @@
 BUGS
 CHANGELOG
-COPYING
 FILES
+LICENSE
 README
 TODO
-UPGRADING
 VERSION
 Makefile
 Makefile.local.unused
-cryptokit-1.0.tar.gz
+cryptokit-1.5.tar.gz
 sks_build.sh
 bdb/*.ml
 bdb/*.mli
@@ -16,8 +15,8 @@ bdb/Makefile
 bdb/*.c
 bdb/*.h
 .depend
-*.ml
 *.mli
+*.ml
 *.c
 sampleConfig/*
 sampleWeb/*
