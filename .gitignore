@@ -1,11 +1,13 @@
-syntax: glob
-Makefile.local
-*.cmx
-*.cmo
-*.o
-*.cmxa
-*.cmi
 *.annot
+*.cmo
+*.cma
+*.cmi
+*.a
+*.o
+*.cmx
+*.cmxs
+*.cmxa
+Makefile.local
 cryptokit-1.0
 cryptokit-1.5
 lib
@@ -17,5 +19,4 @@ sks_add_mail
 .depend
 prepared
 *~
-*.a
-.git
+.hg
