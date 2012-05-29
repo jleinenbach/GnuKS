@@ -7,6 +7,7 @@ Makefile.local
 *.cmi
 *.annot
 cryptokit-1.0
+cryptokit-1.5
 lib
 numerix-0.22
 tmp
