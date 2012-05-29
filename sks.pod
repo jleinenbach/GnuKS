@@ -56,7 +56,7 @@ Build prefix-tree database, used by reconciliation server, from key database. Al
 
 =item dump numkeys dumpdir
 
-Create a raw dump of the keys in the database.
+Create a raw dump of the keys in the database. The dump is split into multiple files; the numkeys parameter determines the number of keys dumped in each file.
 
 =item merge
 
